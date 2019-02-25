@@ -18,10 +18,10 @@
 #include <pthread.h>
 #include <arpa/inet.h>
 
-#define PORT "9034" // the port client will be connecting to
+#define PORT "5000" // the port client will be connecting to
 
-#define MAXDATASIZE 100 // max number of bytes we can get at once
-#define MAXNAMESIZE 25
+#define MAXDATASIZE 250 // max number of bytes we can get at once
+#define MAXNAMESIZE 11
 
 //the thread function
 void *receive_handler(void *);
@@ -91,10 +91,10 @@ int main(int argc, char *argv[])
     freeaddrinfo(servinfo); // all done with this structure
 
     //****EDIT STARTS HERE
-    puts("Nickname:");
-    memset(&nickName, sizeof(nickName), 0);
-    memset(&message, sizeof(message), 0); //clean message buffer
-    fgets(nickName, MAXNAMESIZE, stdin);  //catch nickname
+    puts("Nom:"); // affiche 
+    memset(&nickName, sizeof(nickName), 0); //vide le buffer (remplace l'écriture binaire par des 0 pour  vider la chaine de caratere)
+    memset(&message, sizeof(message), 0); ////vide le buffer (remplace l'écriture binaire par des 0 pour  vider la chaine de caratere)
+    fgets(nickName, MAXNAMESIZE, stdin);  //recupere le nom de l'utilisateur
     //puts(message);
 
     //create new thread to keep receiving messages:
@@ -111,24 +111,26 @@ int main(int argc, char *argv[])
     puts("Synchronous receive handler assigned");
 
     //send message to server:
-    puts("Connected\n");
-    puts("[Type '/quit' to quit]");
+    puts("Connecter\n");
+    puts("[Inserez '/quit' pour quitter]");
 
     //while(strcmp(sBuf,"/quit") != 0)
-    for(;;)
+    for(;;) // boucle infini pour que le client ne s'arrete pas   
 	{
 		char temp[6];
-		memset(&temp, sizeof(temp), 0);
+		memset(&temp, sizeof(temp), 0); //vide le temp (remplace l'écriture binaire par des 0 pour  vider la chaine de caratere)
 
         memset(&sBuf, sizeof(sBuf), 0); //clean sendBuffer
-        fgets(sBuf, 100, stdin); //gets(message);
+        fgets(sBuf, 250, stdin); //gets(message);  lit 250 caractere dans l'entré et les stocks dans sBuf
 
+
+        // le client peut quitter la conversation
 		if(sBuf[0] == '/' &&
 		   sBuf[1] == 'q' &&
 		   sBuf[2] == 'u' &&
 		   sBuf[3] == 'i' &&
 		   sBuf[4] == 't')
-			return 1;
+			return 1; 
 
 
 		int count = 0;
@@ -179,13 +181,13 @@ void *receive_handler(void *sock_fd)
 
     for(;;)
     {
-        if ((nBytes = recv(sFd, buffer, MAXDATASIZE-1, 0)) == -1)
+        if ((nBytes = recv(sFd, buffer, MAXDATASIZE-1, 0)) == -1)  // recoie le message depuis une socket, affiche un message d'erreur, et quitte le programme.
         {
-            perror("recv");
+            perror("aucun message recu");
             exit(1);
         }
-        else
-            buffer[nBytes] = '\0';
-        printf("%s", buffer);
+        else  
+            buffer[nBytes] = '\0'; // la derniere case du buffer recoit EOF
+        printf("%s", buffer);   // on affiche le contenu du buffer
     }
 }

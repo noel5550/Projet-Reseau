@@ -16,7 +16,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
-#define PORT "9034"   // port we're listening on
+#define PORT "5000"   // port we're listening on
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
@@ -145,7 +145,7 @@ int main(void)
                 }
                 else
                 {
-                    // handle data from a client
+                    // gérer les messages envoyés par les clients
                     if ((nbytes = recv(i, buf, sizeof buf, 0)) <= 0)
                     {   // got error or connection closed by client
                         if (nbytes == 0)

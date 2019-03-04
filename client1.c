@@ -68,7 +68,9 @@ int main(int argc, char *argv[])
     }
 
     // loop through all the results and connect to the first we can
+    // on crée la socket ( sockfd va contenir le socket descriptor , reference de la socket crée)
     for(p = servinfo; p != NULL; p = p->ai_next) {
+
         if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
             perror("client: socket");
             continue;
@@ -106,15 +108,22 @@ int main(int argc, char *argv[])
     //new_sockfd = malloc(sizeof(int));
     //new_sockfd = sockfd;
 
+
+    // le thread principal va géré l'envoie des messages
+    // le nouveau thread quant a lui va s'occupé de la reception des messages
+
+    // crée un thread qui va executer la fonction "receive_handler"
     if( pthread_create(&recv_thread, NULL, receive_handler, (void*)(intptr_t) sockfd) < 0)
     {   //we passed (intptr_t) instead of (void*) sockfd to supress warnings
 		//use structs if passing more than one argument
         perror("could not create thread");
         return 1;
     }
+
+    // le thread a été crée avec succès
     puts("Synchronous receive handler assigned");
 
-    //send message to server:
+    //Envoie un message au serveur
     puts("Connecter\n");
     puts("[Inserez '/quit' pour quitter]");
 
@@ -140,14 +149,15 @@ int main(int argc, char *argv[])
 		int count = 0;
         while(count < strlen(nickName))
         {
-            message[count] = nickName[count];
+            message[count] = nickName[count]; // on met le nickname dans le message pour qu'il s'affiche a l'envoie
             count++;
         }
+
         count--;
         message[count] = ':';
         count++;
 		//prepend
-        for(int i = 0; i < strlen(sBuf); i++)
+        for(int i = 0; i < strlen(sBuf); i++)  // sBuf représente ce qui arrive en entré 
         {
             message[count] = sBuf[i];
             count++;
@@ -156,11 +166,15 @@ int main(int argc, char *argv[])
         //puts(message);
         //Send some data
         //if(send(sockfd, sBuf , strlen(sBuf) , 0) < 0)
+
+        // on envoie le message dans la socket
         if(send(sockfd, message, strlen(message), 0) < 0)
         {
             puts("Send failed");
             return 1;
         }
+
+        // une fois le message envoyé , on vide le buffer
         memset(&sBuf, sizeof(sBuf), 0);
 
         /* receive message from client:
@@ -169,6 +183,11 @@ int main(int argc, char *argv[])
     }
 
     //puts("Closing socket connection");
+
+    // une fois que l'utilisateur entre "quit"
+    // attend que le thread qui recoit les messages achèves sont execution
+    // ferme le descripteur
+    // on quitte le programme
     pthread_join(recv_thread , NULL);
     close(sockfd);
 

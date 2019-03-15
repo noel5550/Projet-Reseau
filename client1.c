@@ -19,18 +19,16 @@
 #include <arpa/inet.h>
 
 #define PORT "5000" // le port auquel le client sera connecter
-
 #define MAXDATASIZE 250 // max number of bytes we can get at once
 #define MAXNAMESIZE 11
 
 typedef struct addrinfo addrinfo;
 
-//the thread function
+//fonction du thread
 void *receive_handler(void *);
 
-// get sockaddr, IPv4 or IPv6:
-void *get_in_addr(struct sockaddr *sa)
-{
+// get sockaddr, IPv4 ou IPv6:
+void *get_in_addr(struct sockaddr *sa){
     if (sa->sa_family == AF_INET) {
         return &(((struct sockaddr_in*)sa)->sin_addr);
     }
@@ -38,16 +36,13 @@ void *get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]){
     char message[MAXDATASIZE]; // tableau du message
     char nickName[MAXNAMESIZE]; // tableau du pseudo
 
-    //int *new_sockfd; //added
-    int sockfd;//, numbytes;
-    //char buf[MAXDATASIZE];
 
-    char buffer_envoie[MAXDATASIZE]; //added
+    int sockfd;
+    char buffer_envoie[MAXDATASIZE];
 
     // structure prédéfini dans les biblioteque importé
     // contient les informations sur un hote internet ou un service
@@ -69,7 +64,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    // loop through all the results and connect to the first we can
+    // boucler tous les adresses et se connecte à la première disponible
     // on crée la socket ( sockfd va contenir le socket descriptor , reference de la socket crée)
     for(p = servinfo; p != NULL; p = p->ai_next) {
 
@@ -87,7 +82,7 @@ int main(int argc, char *argv[])
         break;
     }
 
-    // on arrive a pas connecté le client avec la socket
+    // on n'arrive pas à connecter le client avec la socket
     if (p == NULL) {
         fprintf(stderr, "client: failed to connect\n");
         return 2;
@@ -95,29 +90,20 @@ int main(int argc, char *argv[])
 
     inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr), s, sizeof s);
     printf("client: connecting to %s\n", s);
+    freeaddrinfo(servinfo);
 
-    freeaddrinfo(servinfo); // all done with this structure
-
-    //****EDIT STARTS HERE
-    puts("Nom:"); // affiche 
+    puts("Nom:"); // affichage 
     memset(&nickName, sizeof(nickName), 0); //vide le buffer (remplace l'écriture binaire par des 0 pour  vider la chaine de caratere)
     memset(&message, sizeof(message), 0); ////vide le buffer (remplace l'écriture binaire par des 0 pour  vider la chaine de caratere)
-    fgets(nickName, MAXNAMESIZE, stdin);  //recupere le nom de l'utilisateur
-    //puts(message);
+    fgets(nickName, MAXNAMESIZE, stdin);  //recupère le nom de l'utilisateur
 
-    //create new thread to keep receiving messages:
+    //création d'un nouveau thread pour reçevoir des messages :
     pthread_t recv_thread;
-    //new_sockfd = malloc(sizeof(int));
-    //new_sockfd = sockfd;
 
-
-    // le thread principal va géré l'envoie des messages
-    // le nouveau thread quant a lui va s'occupé de la reception des messages
-
+    // le thread principal va gérer l'envoie des messages
+    // le nouveau thread quant a lui va s'occuper de la reception des messages
     // crée un thread qui va executer la fonction "receive_handler"
-    if( pthread_create(&recv_thread, NULL, receive_handler, (void*)(intptr_t) sockfd) < 0)
-    {   //we passed (intptr_t) instead of (void*) sockfd to supress warnings
-		//use structs if passing more than one argument
+    if( pthread_create(&recv_thread, NULL, receive_handler, (void*)(intptr_t) sockfd) < 0){ 
         perror("could not create thread");
         return 1;
     }
@@ -130,27 +116,24 @@ int main(int argc, char *argv[])
     puts("[Inserez '/quit' pour quitter]");
 
     //while(strcmp(buffer_envoie,"/quit") != 0)
-    for(;;) // boucle infini pour que le client ne s'arrete pas   
-	{
+    while(1){ // boucle infini pour que le client ne s'arrete pas   
+
 		char temp[6];
 		memset(&temp, sizeof(temp), 0); //vide le temp (remplace l'écriture binaire par des 0 pour  vider la chaine de caratere)
-
         memset(&buffer_envoie, sizeof(buffer_envoie), 0); //clean sendBuffer
-        fgets(buffer_envoie, 250, stdin); //gets(message);  lit 250 caractere dans l'entré et les stocks dans buffer_envoie
-
+        fgets(buffer_envoie, 250, stdin); //lit 250 caractere dans l'entré et les stocks dans buffer_envoie
 
         // le client peut quitter la conversation
 		if(buffer_envoie[0] == '/' &&
 		   buffer_envoie[1] == 'q' &&
 		   buffer_envoie[2] == 'u' &&
 		   buffer_envoie[3] == 'i' &&
-		   buffer_envoie[4] == 't')
+		   buffer_envoie[4] == 't'){
 			return 1; 
-
+		}
 
 		int count = 0;
-        while(count < strlen(nickName))
-        {
+        while(count < strlen(nickName)){
             message[count] = nickName[count]; // on met le nickname dans le message pour qu'il s'affiche a l'envoie
             count++;
         }
@@ -159,32 +142,21 @@ int main(int argc, char *argv[])
         message[count] = ':';
         count++;
 		//prepend
-        for(int i = 0; i < strlen(buffer_envoie); i++)  // buffer_envoie représente ce qui arrive en entré 
-        {
+        for(int i = 0; i < strlen(buffer_envoie); i++){  // buffer_envoie représente ce qui arrive en entrée 
             message[count] = buffer_envoie[i];
             count++;
         }
         message[count] = '\0';
-        //puts(message);
-        //Send some data
-        //if(send(sockfd, buffer_envoie , strlen(buffer_envoie) , 0) < 0)
 
         // on envoie le message dans la socket
-        if(send(sockfd, message, strlen(message), 0) < 0)
-        {
+        if(send(sockfd, message, strlen(message), 0) < 0){
             puts("Send failed");
             return 1;
         }
 
         // une fois le message envoyé , on vide le buffer
         memset(&buffer_envoie, sizeof(buffer_envoie), 0);
-
-        /* receive message from client:
-         * we move this to a thread in order to get synchronous recv()s.
-         */
     }
-
-    //puts("Closing socket connection");
 
     // une fois que l'utilisateur entre "quit"
     // attend que le thread qui recoit les messages achèves sont execution
@@ -192,27 +164,22 @@ int main(int argc, char *argv[])
     // on quitte le programme
     pthread_join(recv_thread , NULL);
     close(sockfd);
-
     return 0;
 }
 
 //thread function
-void *receive_handler(void *sock_fd)
-{
-    //int* sFd = (int*) sock_fd;
+void *receive_handler(void *sock_fd){
 	int sFd = (intptr_t) sock_fd;
     char buffer[MAXDATASIZE];
     int longueur_message;
 
-    for(;;)
-    {
-        if ((longueur_message = recv(sFd, buffer, MAXDATASIZE-1, 0)) == -1)  // recoie le message depuis une socket, affiche un message d'erreur, et quitte le programme.
-        {
+    while(1){
+        if ((longueur_message = recv(sFd, buffer, MAXDATASIZE-1, 0)) == -1){  // récéption du message depuis une socket, affiche un message d'erreur, et quitte le programme.
             perror("aucun message recu");
             exit(1);
-        }
-        else  
-            buffer[longueur_message] = '\0'; // la derniere case du buffer recoit EOF
+        }else{
+        	buffer[longueur_message] = '\0'; // la derniere case du buffer recoit EOF
+        }  
         printf("%s", buffer);   // on affiche le contenu du buffer
     }
 }

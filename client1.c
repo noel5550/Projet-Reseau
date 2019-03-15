@@ -23,6 +23,8 @@
 #define MAXDATASIZE 250 // max number of bytes we can get at once
 #define MAXNAMESIZE 11
 
+typedef struct addrinfo addrinfo;
+
 //the thread function
 void *receive_handler(void *);
 
@@ -45,11 +47,11 @@ int main(int argc, char *argv[])
     int sockfd;//, numbytes;
     //char buf[MAXDATASIZE];
 
-    char sBuf[MAXDATASIZE]; //added
+    char buffer_envoie[MAXDATASIZE]; //added
 
     // structure prédéfini dans les biblioteque importé
     // contient les informations sur un hote internet ou un service
-    struct addrinfo hints, *servinfo, *p;
+    addrinfo hints, *servinfo, *p;
     int rv;
     char s[INET6_ADDRSTRLEN];  // taille de la chaine de caractère pour l'adress  IP
  
@@ -127,22 +129,22 @@ int main(int argc, char *argv[])
     puts("Connecter\n");
     puts("[Inserez '/quit' pour quitter]");
 
-    //while(strcmp(sBuf,"/quit") != 0)
+    //while(strcmp(buffer_envoie,"/quit") != 0)
     for(;;) // boucle infini pour que le client ne s'arrete pas   
 	{
 		char temp[6];
 		memset(&temp, sizeof(temp), 0); //vide le temp (remplace l'écriture binaire par des 0 pour  vider la chaine de caratere)
 
-        memset(&sBuf, sizeof(sBuf), 0); //clean sendBuffer
-        fgets(sBuf, 250, stdin); //gets(message);  lit 250 caractere dans l'entré et les stocks dans sBuf
+        memset(&buffer_envoie, sizeof(buffer_envoie), 0); //clean sendBuffer
+        fgets(buffer_envoie, 250, stdin); //gets(message);  lit 250 caractere dans l'entré et les stocks dans buffer_envoie
 
 
         // le client peut quitter la conversation
-		if(sBuf[0] == '/' &&
-		   sBuf[1] == 'q' &&
-		   sBuf[2] == 'u' &&
-		   sBuf[3] == 'i' &&
-		   sBuf[4] == 't')
+		if(buffer_envoie[0] == '/' &&
+		   buffer_envoie[1] == 'q' &&
+		   buffer_envoie[2] == 'u' &&
+		   buffer_envoie[3] == 'i' &&
+		   buffer_envoie[4] == 't')
 			return 1; 
 
 
@@ -157,15 +159,15 @@ int main(int argc, char *argv[])
         message[count] = ':';
         count++;
 		//prepend
-        for(int i = 0; i < strlen(sBuf); i++)  // sBuf représente ce qui arrive en entré 
+        for(int i = 0; i < strlen(buffer_envoie); i++)  // buffer_envoie représente ce qui arrive en entré 
         {
-            message[count] = sBuf[i];
+            message[count] = buffer_envoie[i];
             count++;
         }
         message[count] = '\0';
         //puts(message);
         //Send some data
-        //if(send(sockfd, sBuf , strlen(sBuf) , 0) < 0)
+        //if(send(sockfd, buffer_envoie , strlen(buffer_envoie) , 0) < 0)
 
         // on envoie le message dans la socket
         if(send(sockfd, message, strlen(message), 0) < 0)
@@ -175,7 +177,7 @@ int main(int argc, char *argv[])
         }
 
         // une fois le message envoyé , on vide le buffer
-        memset(&sBuf, sizeof(sBuf), 0);
+        memset(&buffer_envoie, sizeof(buffer_envoie), 0);
 
         /* receive message from client:
          * we move this to a thread in order to get synchronous recv()s.
@@ -200,17 +202,17 @@ void *receive_handler(void *sock_fd)
     //int* sFd = (int*) sock_fd;
 	int sFd = (intptr_t) sock_fd;
     char buffer[MAXDATASIZE];
-    int nBytes;
+    int longueur_message;
 
     for(;;)
     {
-        if ((nBytes = recv(sFd, buffer, MAXDATASIZE-1, 0)) == -1)  // recoie le message depuis une socket, affiche un message d'erreur, et quitte le programme.
+        if ((longueur_message = recv(sFd, buffer, MAXDATASIZE-1, 0)) == -1)  // recoie le message depuis une socket, affiche un message d'erreur, et quitte le programme.
         {
             perror("aucun message recu");
             exit(1);
         }
         else  
-            buffer[nBytes] = '\0'; // la derniere case du buffer recoit EOF
+            buffer[longueur_message] = '\0'; // la derniere case du buffer recoit EOF
         printf("%s", buffer);   // on affiche le contenu du buffer
     }
 }
